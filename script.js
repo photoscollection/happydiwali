@@ -17,41 +17,26 @@ const greetings = [
   "{{name}}, may each diya you light bring blessings your way!"
 ];
 
-function hashString(s){ 
-  let h=5381; 
-  for(let i=0;i<s.length;i++) h=((h<<5)+h)+s.charCodeAt(i); 
-  return Math.abs(h); 
-}
+function hashString(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)+s.charCodeAt(i); return Math.abs(h); }
 
 function makeGreeting(name){
-  name = (name||'Friend').trim();
+  name = name.trim() || '';
   const idx = hashString(name + String(Date.now()).slice(-4)) % greetings.length;
-  return greetings[idx].replace(/\{\{name\}\}/g, name.charAt(0).toUpperCase()+name.slice(1));
+  return greetings[idx].replace(/\{\{name\}\}/g, name? name.charAt(0).toUpperCase()+name.slice(1): '');
 }
-
-document.getElementById('make').addEventListener('click', ()=> {
-  const name = document.getElementById('name').value || 'Friend';
-  document.getElementById('greetingText').innerText = makeGreeting(name);
-
-  // Trigger multiple bursts instantly
-  for (let i=0; i<4; i++) triggerFireworkBurst();
-});
-
-window.onload = ()=>{ document.getElementById('name').focus(); };
 
 /* =================== Canvas Setup =================== */
 const fxCanvas = document.getElementById('fx-canvas');
 const fxCtx = fxCanvas.getContext('2d');
-
 function resizeCanvases(){
   const dpr = Math.max(1, window.devicePixelRatio || 1);
-  fxCanvas.width = Math.floor(window.innerWidth * dpr);
-  fxCanvas.height = Math.floor(window.innerHeight * dpr);
-  fxCanvas.style.width = window.innerWidth + 'px';
-  fxCanvas.style.height = window.innerHeight + 'px';
+  fxCanvas.width = Math.floor(window.innerWidth*dpr);
+  fxCanvas.height = Math.floor(window.innerHeight*dpr);
+  fxCanvas.style.width = window.innerWidth+'px';
+  fxCanvas.style.height = window.innerHeight+'px';
   fxCtx.setTransform(dpr,0,0,dpr,0,0);
 }
-window.addEventListener('resize', resizeCanvases);
+window.addEventListener('resize',resizeCanvases);
 resizeCanvases();
 
 /* =================== Rice Lights =================== */
@@ -60,121 +45,117 @@ for(let i=0;i<28;i++){
   riceLights.push({
     x: Math.random()*window.innerWidth,
     y: Math.random()*window.innerHeight*0.6,
-    r: 10 + Math.random()*40,
-    alpha: 0.03 + Math.random()*0.12,
-    vx: (Math.random()-0.5)*0.15,
-    vy: (Math.random()-0.5)*0.04,
-    hue: 30 + Math.random()*50
+    r:10+Math.random()*40,
+    alpha:0.03+Math.random()*0.12,
+    vx:(Math.random()-0.5)*0.15,
+    vy:(Math.random()-0.5)*0.04,
+    hue:30+Math.random()*50
   });
 }
-
 function drawRiceLights(dt){
-  // Draw bokeh background
   fxCtx.clearRect(0,0,window.innerWidth,window.innerHeight);
-  riceLights.forEach(l => {
-    l.x += l.vx*dt;
-    l.y += l.vy*dt;
+  riceLights.forEach(l=>{
+    l.x+=l.vx*dt; l.y+=l.vy*dt;
     if(l.x<-l.r) l.x=window.innerWidth+l.r;
     if(l.x>window.innerWidth+l.r) l.x=-l.r;
     if(l.y<-l.r) l.y=window.innerHeight+l.r;
     if(l.y>window.innerHeight+l.r) l.y=-l.r;
-
     const g = fxCtx.createRadialGradient(l.x,l.y,0,l.x,l.y,l.r);
-    g.addColorStop(0, `hsla(${l.hue},90%,60%,${l.alpha})`);
-    g.addColorStop(0.6, `hsla(${l.hue},90%,55%,${l.alpha*0.35})`);
-    g.addColorStop(1, `hsla(${l.hue},90%,45%,0)`);
-    fxCtx.fillStyle = g;
-    fxCtx.beginPath();
-    fxCtx.arc(l.x,l.y,l.r,0,Math.PI*2);
-    fxCtx.fill();
+    g.addColorStop(0,`hsla(${l.hue},90%,60%,${l.alpha})`);
+    g.addColorStop(0.6,`hsla(${l.hue},90%,55%,${l.alpha*0.35})`);
+    g.addColorStop(1,`hsla(${l.hue},90%,45%,0)`);
+    fxCtx.fillStyle=g; fxCtx.beginPath(); fxCtx.arc(l.x,l.y,l.r,0,Math.PI*2); fxCtx.fill();
   });
 }
 
 /* =================== Fireworks Particles =================== */
-const particles = [];
-
-function spawnFirework(x, y){
-  const hue = Math.random()*360;
-  const count = 50 + Math.floor(Math.random()*80);
-
+const particles=[];
+function spawnFirework(x,y){
+  const hue=Math.random()*360;
+  const count=50+Math.floor(Math.random()*80);
   for(let i=0;i<count;i++){
-    const angle = Math.random()*Math.PI*2;
-    const speed = 2 + Math.random()*3;
+    const angle=Math.random()*Math.PI*2;
+    const speed=2+Math.random()*3;
     particles.push({
-      x, y,
-      vx: Math.cos(angle)*speed*(0.8+Math.random()*0.7),
-      vy: Math.sin(angle)*speed*(0.8+Math.random()*0.7),
-      life: 0.8 + Math.random()*1.4,
+      x,y,
+      vx:Math.cos(angle)*speed*(0.8+Math.random()*0.7),
+      vy:Math.sin(angle)*speed*(0.8+Math.random()*0.7),
+      life:0.8+Math.random()*1.4,
       age:0,
       hue,
-      size: 2 + Math.random()*3
+      size:2+Math.random()*3
     });
   }
 }
-
 function triggerFireworkBurst(){
-  const w = window.innerWidth, h = window.innerHeight;
-  spawnFirework(w*0.5 + (Math.random()-0.5)*200, h*0.2 + Math.random()*100);
-  spawnFirework(w*0.3 + Math.random()*200, h*0.15 + Math.random()*80);
+  const w=window.innerWidth, h=window.innerHeight;
+  spawnFirework(w*0.5+(Math.random()-0.5)*200, h*0.2+Math.random()*100);
+  spawnFirework(w*0.3+Math.random()*200, h*0.15+Math.random()*80);
 }
-
-/* =================== Particle Update & Draw =================== */
 function updateParticles(dt){
   for(let i=particles.length-1;i>=0;i--){
-    const p = particles[i];
-    p.age += dt;
-    p.x += p.vx*dt*60;
-    p.y += p.vy*dt*60;
-    p.vy += 0.03*dt*60;
-    p.vx *= 0.995; p.vy *= 0.995;
-    if(p.age > p.life) particles.splice(i,1);
+    const p=particles[i];
+    p.age+=dt; p.x+=p.vx*dt*60; p.y+=p.vy*dt*60;
+    p.vy+=0.03*dt*60; p.vx*=0.995; p.vy*=0.995;
+    if(p.age>p.life) particles.splice(i,1);
   }
 }
-
 function drawParticles(){
-  // Trail effect
-  fxCtx.globalCompositeOperation = 'destination-out';
-  fxCtx.fillStyle = 'rgba(0,0,0,0.2)';
+  fxCtx.globalCompositeOperation='destination-out';
+  fxCtx.fillStyle='rgba(0,0,0,0.2)';
   fxCtx.fillRect(0,0,fxCanvas.width,fxCanvas.height);
-  fxCtx.globalCompositeOperation = 'lighter';
-
+  fxCtx.globalCompositeOperation='lighter';
   particles.forEach(p=>{
-    const t = p.age/p.life;
-    const alpha = Math.max(0,1-t);
-
-    // main particle
-    fxCtx.fillStyle = `hsla(${p.hue},90%,60%,${alpha})`;
-    fxCtx.beginPath();
-    fxCtx.arc(p.x,p.y,p.size*(1+(1-t)),0,Math.PI*2);
-    fxCtx.fill();
-
-    // glow trail
-    fxCtx.fillStyle = `hsla(${p.hue},90%,60%,${alpha*0.25})`;
-    fxCtx.beginPath();
-    fxCtx.arc(p.x,p.y,p.size*4*(1-t),0,Math.PI*2);
-    fxCtx.fill();
+    const t=p.age/p.life;
+    const alpha=Math.max(0,1-t);
+    fxCtx.fillStyle=`hsla(${p.hue},90%,60%,${alpha})`;
+    fxCtx.beginPath(); fxCtx.arc(p.x,p.y,p.size*(1+(1-t)),0,Math.PI*2); fxCtx.fill();
+    fxCtx.fillStyle=`hsla(${p.hue},90%,60%,${alpha*0.25})`;
+    fxCtx.beginPath(); fxCtx.arc(p.x,p.y,p.size*4*(1-t),0,Math.PI*2); fxCtx.fill();
   });
 }
-
-/* =================== Animation Loop =================== */
-let last = performance.now();
+let last=performance.now();
 function fxLoop(now){
-  const dt = (now-last)/1000; last = now;
-  drawRiceLights(dt);
-  updateParticles(dt);
-  drawParticles();
+  const dt=(now-last)/1000; last=now;
+  drawRiceLights(dt); updateParticles(dt); drawParticles();
   requestAnimationFrame(fxLoop);
 }
 requestAnimationFrame(fxLoop);
 
-/* =================== Click to Burst =================== */
-fxCanvas.addEventListener('click',(ev)=>{
-  const rect = fxCanvas.getBoundingClientRect();
-  const x = ev.clientX - rect.left;
-  const y = ev.clientY - rect.top;
-  for(let i=0;i<2;i++) spawnFirework(x + (Math.random()-0.5)*50, y + (Math.random()-0.5)*50);
+/* =================== Generate Greeting Fullscreen =================== */
+document.getElementById('make').addEventListener('click', ()=>{
+  const name=document.getElementById('name').value||'';
+  document.getElementById('greetingText').innerText=makeGreeting(name);
+  document.getElementById('actionButtons').style.display='flex';
+  triggerFireworkBurst(); triggerFireworkBurst(); triggerFireworkBurst();
 });
 
-/* =================== Candles & Three.js Scene =================== */
-// Keep your existing candle + Three.js code here
-// (No change needed for fireworks)
+/* =================== Download & Share =================== */
+document.getElementById('downloadBtn').addEventListener('click',()=>{
+  html2canvas(document.getElementById('app')).then(canvas=>{
+    const link=document.createElement('a');
+    link.download='diwali-greeting.png';
+    link.href=canvas.toDataURL();
+    link.click();
+  });
+});
+document.getElementById('shareBtn').addEventListener('click',async ()=>{
+  if(navigator.canShare){
+    html2canvas(document.getElementById('app')).then(canvas=>{
+      canvas.toBlob(blob=>{
+        const file=new File([blob],'diwali-greeting.png',{type:'image/png'});
+        navigator.share({files:[file],title:'Happy Diwali',text:'Check out this greeting!'});
+      });
+    });
+  }else{
+    alert("Sharing not supported on this device");
+  }
+});
+
+/* =================== FX Canvas Click =================== */
+fxCanvas.addEventListener('click',(ev)=>{
+  const rect=fxCanvas.getBoundingClientRect();
+  const x=ev.clientX-rect.left;
+  const y=ev.clientY-rect.top;
+  spawnFirework(x,y); spawnFirework(x+Math.random()*50,y+Math.random()*50);
+});
