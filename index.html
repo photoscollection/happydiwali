@@ -1,144 +1,408 @@
 <!doctype html>
-
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Happy Diwali 🎆</title>
   <style>
-    :root{--bg:#0b0312;--card:#0f0b16;--accent:#ffb86b}
-    html,body{height:100%;margin:0;font-family:Poppins,Inter,system-ui,Segoe UI,Roboto,Arial;overflow:hidden}
-    body{background:radial-gradient(circle at 10% 10%, #1b0026 0%, var(--bg) 40%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-    #three-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;}
-    .overlay{z-index:1;position:relative;padding:20px;background:rgba(0,0,0,0.5);border-radius:12px;max-width:90vw}
-    input[type=text]{width:100%;padding:10px 14px;border-radius:10px;border:none;background:rgba(255,255,255,0.1);color:#fff;font-size:18px;text-align:center;outline:none}
-    button{margin-top:10px;padding:10px 20px;border-radius:10px;border:none;background:linear-gradient(90deg,#ffb86b,#ff6b6b);cursor:pointer;font-weight:600;color:#fff;font-size:16px}
-    #greetingText{font-size:28px;margin-top:20px;line-height:1.4;animation:fadeIn 1s ease forwards}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    /* ======= Layout ======= */
+    :root{
+      --bg1: #06020a; /* deep night */
+      --bg2: #1b0320; /* purple tint */
+      --accent: #ffb86b;
+      --glass: rgba(255,255,255,0.04);
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;overflow:hidden;background:
+      radial-gradient(circle at 20% 10%, rgba(255,178,107,0.03) 0%, transparent 10%),
+      linear-gradient(180deg,var(--bg2) 0%, var(--bg1) 70%);}
+    #app {
+      position:relative;
+      width:100%; height:100%;
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; text-align:center;
+    }
+
+    /* Three.js canvas sits full-screen below everything */
+    #three-canvas{position:absolute;left:0;top:0;width:100%;height:100%;z-index:0;display:block}
+
+    /* 2D overlay canvas for fireworks & rice lights */
+    #fx-canvas{position:absolute;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none}
+
+    /* Foreground UI container */
+    .overlay{
+      position:relative; z-index:3; width:min(920px,94vw); margin:auto; padding:18px;
+      backdrop-filter: blur(6px); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .controls{display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap}
+    input[type=text]{min-width:260px;padding:12px 14px;border-radius:12px;border:none;background:rgba(255,255,255,0.03);color:#fff;font-size:16px;outline:none;text-align:center}
+    button{padding:10px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,#ffb86b,#ff6b6b);color:#111;font-weight:700;cursor:pointer}
+
+    #greetingText{margin-top:18px;font-size:26px;line-height:1.3;min-height:64px}
+
+    /* Bottom candle-row container */
+    .candle-row{
+      position: absolute; left:0; right:0; bottom:8px; z-index:2; display:flex; gap:10px;
+      justify-content:center; align-items:end; pointer-events:none; padding:6px;
+    }
+    .candle-row img{
+      height:86px; display:block; filter: drop-shadow(0 8px 30px rgba(0,0,0,0.6));
+      transform-origin:50% 100%;
+      animation: steadyFlicker 1200ms infinite ease-in-out;
+      will-change: transform, filter, opacity;
+    }
+
+    /* Floating candles (random positions) */
+    .floating-candle{
+      position:absolute; z-index:2; width:72px; pointer-events:none; filter: drop-shadow(0 8px 40px rgba(0,0,0,0.6));
+      transform-origin:50% 50%;
+      animation: floatUp 6s ease-in-out infinite, softFlicker 1.2s infinite;
+    }
+
+    @keyframes floatUp{
+      0%{ transform: translateY(12px) scale(0.95); opacity:0; }
+      10%{ opacity:1; }
+      50%{ transform: translateY(-18px) scale(1.03); opacity:1; }
+      90%{ opacity:1; }
+      100%{ transform: translateY(-36px) scale(0.95); opacity:0; }
+    }
+    @keyframes steadyFlicker{
+      0%{ transform: scaleY(1); filter:brightness(1); }
+      40%{ transform: scaleY(1.02); filter:brightness(1.05); }
+      100%{ transform: scaleY(0.98); filter:brightness(0.95); }
+    }
+    @keyframes softFlicker{
+      0%{ filter:brightness(1.02) drop-shadow(0 8px 26px rgba(255,170,80,0.25)); }
+      50%{ filter:brightness(0.86) drop-shadow(0 8px 40px rgba(255,140,60,0.32)); }
+      100%{ filter:brightness(1.02) drop-shadow(0 8px 26px rgba(255,170,80,0.25)); }
+    }
+
+    /* small screen tweaks */
+    @media (max-width:600px){
+      .candle-row img{height:60px}
+      .floating-candle{width:56px}
+      #greetingText{font-size:20px}
+    }
   </style>
 </head>
 <body>
-  <canvas id="three-canvas"></canvas>
-  <div class="overlay">
-    <input id="name" type="text" placeholder="Enter your name here ✨">
-    <div>
-      <button id="make">Generate Greeting</button>
-      <button id="random">Surprise Me</button>
+  <div id="app">
+    <!-- WebGL scene (Three.js) -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- 2D canvas for fireworks & blurred rice lights -->
+    <canvas id="fx-canvas"></canvas>
+
+    <!-- Foreground controls + greeting -->
+    <div class="overlay">
+      <div class="controls">
+        <input id="name" type="text" placeholder="Enter your friend's name (e.g. Ananya)">
+        <button id="make">Generate Greeting</button>
+      </div>
+      <h2 id="greetingText">Wishing you a bright and joyful Diwali 🪔</h2>
     </div>
-    <h2 id="greetingText">Wishing you a bright and joyful Diwali 🪔</h2>
-  </div>  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>  <script>
-    const greetings = [
-      "Happy Diwali, {{name}}! May this festival fill your life with light and success.",
-      "Wishing you endless joy, {{name}}. Shine bright like a thousand diyas this Diwali!",
-      "{{name}}, may your heart and home sparkle with happiness this Diwali!",
-      "Light up your life with love and laughter, {{name}}. Happy Diwali!",
-      "May this Diwali bring you closer to your dreams, {{name}}!",
-      "{{name}}, let the light of diyas guide you toward prosperity and peace.",
-      "Celebrate Diwali with smiles, sweets, and sparkles, {{name}}!",
-      "{{name}}, may the firecrackers of happiness light up your sky forever!",
-      "Let the glow of diyas remind you that hope always shines, {{name}}!",
-      "{{name}}, wishing you a festival full of colors, sweets, and cheer!",
-      "This Diwali, let love be your spark and kindness your light, {{name}}!",
-      "{{name}}, celebrate the festival of lights with joy and togetherness!",
-      "Happy Diwali, {{name}} — may your life bloom with endless radiance!",
-      "Let the lights of Diwali illuminate your soul, {{name}}!",
-      "{{name}}, may each diya you light bring blessings your way!"
-    ];
 
-    function hashString(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h)+s.charCodeAt(i);return Math.abs(h);}
-    function makeGreeting(name){
-      name = (name||'Friend').trim();
-      const base = greetings[ hashString(name+Date.now().toString().slice(-3)) % greetings.length ];
-      return base.replace(/\{\{name\}\}/g, name.charAt(0).toUpperCase()+name.slice(1));
-    }
+    <!-- bottom row of candles — these use your uploaded image: save as candle.png -->
+    <div class="candle-row" id="candleRow" aria-hidden="true">
+      <!-- images will be appended by JS -->
+    </div>
 
-    document.getElementById('make').addEventListener('click',()=>{
-      const name=document.getElementById('name').value||'Friend';
-      showGreeting(makeGreeting(name));
-      launchFireworks();
+    <!-- floating candles (JS will create a few with randomized offsets) -->
+    <!-- images require the file candle.png in same directory -->
+  </div>
+
+  <!-- Three.js -->
+  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+
+  <script>
+  /* =================== Greeting logic =================== */
+  const greetings = [
+    "Happy Diwali, {{name}}! May this festival fill your life with light and success.",
+    "Wishing you endless joy, {{name}}. Shine bright like a thousand diyas this Diwali!",
+    "{{name}}, may your heart and home sparkle with happiness this Diwali!",
+    "Light up your life with love and laughter, {{name}}. Happy Diwali!",
+    "May this Diwali bring you closer to your dreams, {{name}}!",
+    "{{name}}, let the light of diyas guide you toward prosperity and peace.",
+    "Celebrate Diwali with smiles, sweets, and sparkles, {{name}}!",
+    "{{name}}, may the firecrackers of happiness light up your sky forever!",
+    "Let the glow of diyas remind you that hope always shines, {{name}}!",
+    "{{name}}, wishing you a festival full of colors, sweets, and cheer!",
+    "This Diwali, let love be your spark and kindness your light, {{name}}!",
+    "{{name}}, celebrate the festival of lights with joy and togetherness!",
+    "Happy Diwali, {{name}} — may your life bloom with endless radiance!",
+    "Let the lights of Diwali illuminate your soul, {{name}}!",
+    "{{name}}, may each diya you light bring blessings your way!"
+  ];
+
+  function hashString(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)+s.charCodeAt(i); return Math.abs(h); }
+  function makeGreeting(name){
+    name = (name||'Friend').trim();
+    // mix in small time fragment so repeated clicks produce varied templates
+    const idx = hashString(name + String(Date.now()).slice(-4)) % greetings.length;
+    return greetings[idx].replace(/\{\{name\}\}/g, name.charAt(0).toUpperCase()+name.slice(1));
+  }
+
+  document.getElementById('make').addEventListener('click', ()=> {
+    const name = document.getElementById('name').value || 'Friend';
+    document.getElementById('greetingText').innerText = makeGreeting(name);
+    triggerFireworkBurst();
+  });
+
+  /* =================== Setup canvases sizes =================== */
+  const fxCanvas = document.getElementById('fx-canvas');
+  const fxCtx = fxCanvas.getContext('2d');
+  function resizeCanvases(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    fxCanvas.width = Math.floor(window.innerWidth * dpr);
+    fxCanvas.height = Math.floor(window.innerHeight * dpr);
+    fxCanvas.style.width = window.innerWidth + 'px';
+    fxCanvas.style.height = window.innerHeight + 'px';
+    fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // three.js renderer resized separately
+  }
+  window.addEventListener('resize', resizeCanvases);
+  resizeCanvases();
+
+  /* =================== Blurred rice lights (background bokeh) =================== */
+  const riceLights = [];
+  for(let i=0;i<28;i++){
+    riceLights.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight * 0.6,
+      r: 10 + Math.random()*40,
+      alpha: 0.03 + Math.random()*0.12,
+      vx: (Math.random()-0.5)*0.15,
+      vy: (Math.random()-0.5)*0.04,
+      hue: 30 + Math.random()*50
     });
-    document.getElementById('random').addEventListener('click',()=>{
-      const randomName=['Amit','Srijan','Ananya','Riya','Rahul','Priya'][Math.floor(Math.random()*6)];
-      document.getElementById('name').value=randomName;
-      showGreeting(makeGreeting(randomName));
-      launchFireworks();
+  }
+
+  function drawRiceLights(dt){
+    fxCtx.clearRect(0,0,window.innerWidth, window.innerHeight);
+    // draw bokeh (blurred circles)
+    riceLights.forEach(l => {
+      l.x += l.vx * dt;
+      l.y += l.vy * dt;
+      if(l.x < -l.r) l.x = window.innerWidth + l.r;
+      if(l.x > window.innerWidth + l.r) l.x = -l.r;
+      if(l.y < -l.r) l.y = window.innerHeight + l.r;
+      if(l.y > window.innerHeight + l.r) l.y = -l.r;
+
+      // radial gradient for soft glow
+      const g = fxCtx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
+      const color = `hsla(${l.hue}, 90%, 60%, ${l.alpha})`;
+      g.addColorStop(0, color);
+      g.addColorStop(0.6, `hsla(${l.hue}, 90%, 55%, ${l.alpha*0.35})`);
+      g.addColorStop(1, `hsla(${l.hue}, 90%, 45%, 0)`);
+      fxCtx.fillStyle = g;
+      fxCtx.beginPath();
+      fxCtx.arc(l.x, l.y, l.r, 0, Math.PI*2);
+      fxCtx.fill();
     });
+  }
 
-    function showGreeting(text){
-      const el=document.getElementById('greetingText');
-      el.innerText=text;
-      el.style.animation='none';el.offsetHeight;el.style.animation=null;
-    }
-
-    // 3D animation with Three.js — improved Diwali scene
-    const canvas=document.getElementById('three-canvas');
-    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
-    renderer.setPixelRatio(window.devicePixelRatio);
-    const scene=new THREE.Scene();
-    const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,100);
-    camera.position.set(0,1.5,5);
-
-    const ambient=new THREE.AmbientLight(0xffc1a1,0.5);
-    const dir=new THREE.PointLight(0xffd36e,1,100);
-    dir.position.set(2,3,2);
-    scene.add(ambient,dir);
-
-    const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:0x0a0012,roughness:1}));
-    floor.rotation.x=-Math.PI/2;scene.add(floor);
-
-    const diyas=[];
-    for(let i=0;i<12;i++){
-      const group=new THREE.Group();
-      const bowl=new THREE.Mesh(new THREE.TorusGeometry(0.35,0.12,12,32,Math.PI*2),new THREE.MeshStandardMaterial({color:0x6b2f1a,metalness:0.3,roughness:0.7}));
-      bowl.rotation.x=Math.PI/2;bowl.scale.y=0.6;bowl.position.y=0.05;group.add(bowl);
-      const flame=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.2,10),new THREE.MeshBasicMaterial({color:0xffd36e}));
-      flame.position.y=0.25;group.add(flame);
-      const light=new THREE.PointLight(0xffb86b,1.2,4);light.position.set(0,0.25,0);group.add(light);
-      const angle=(i/12)*Math.PI*2;group.position.set(Math.cos(angle)*2,0,Math.sin(angle)*2);scene.add(group);diyas.push(group);
-    }
-
-    const particles=new THREE.BufferGeometry();
-    const maxP=800;const pos=new Float32Array(maxP*3);
-    for(let i=0;i<pos.length;i++)pos[i]=1000;
-    particles.setAttribute('position',new THREE.BufferAttribute(pos,3));
-    const pMat=new THREE.PointsMaterial({color:0xffffff,size:0.06});
-    const pPoints=new THREE.Points(particles,pMat);scene.add(pPoints);
-
-    function launchFireworks(){
-      const positions=particles.attributes.position.array;
-      for(let i=0;i<maxP;i++){
-        const angle=Math.random()*Math.PI*2;
-        const y=Math.random()*2+1;
-        const r=Math.random()*1.5;
-        positions[i*3]=Math.cos(angle)*r;
-        positions[i*3+1]=y;
-        positions[i*3+2]=Math.sin(angle)*r;
-      }
-      particles.attributes.position.needsUpdate=true;
-    }
-
-    const clock=new THREE.Clock();
-    function animate(){
-      requestAnimationFrame(animate);
-      const t=clock.getElapsedTime();
-      diyas.forEach((d,i)=>{
-        d.children[1].scale.y=1+Math.sin(t*6+i)*0.2;
+  /* =================== Fireworks particles (2D) =================== */
+  const particles = []; // active particles
+  function spawnFirework(x, y){
+    const hue = 20 + Math.random()*320;
+    const count = 30 + Math.floor(Math.random()*60);
+    for(let i=0;i<count;i++){
+      const angle = Math.random()*Math.PI*2;
+      const speed = 1.2 + Math.random()*4;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed * (0.6 + Math.random()*1.4),
+        vy: Math.sin(angle) * speed * (0.6 + Math.random()*1.4),
+        life: 1 + Math.random()*1.2,
+        age: 0,
+        hue,
+        size: 1 + Math.random()*3
       });
-      const positions=particles.attributes.position.array;
-      for(let i=0;i<maxP;i++){
-        if(positions[i*3+1]<900){positions[i*3+1]+=0.02+Math.random()*0.04;if(positions[i*3+1]>4)positions[i*3]=positions[i*3+1]=positions[i*3+2]=1000;}
-      }
-      particles.attributes.position.needsUpdate=true;
-      renderer.render(scene,camera);
     }
-    animate();
+  }
 
-    function onResize(){
-      camera.aspect=window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth,window.innerHeight);
+  function triggerFireworkBurst(){
+    // spawn a few bursts across the top half
+    const w = window.innerWidth, h = window.innerHeight;
+    const cx = w * (0.25 + Math.random()*0.5);
+    const cy = h * (0.12 + Math.random()*0.35);
+    spawnFirework(cx, cy);
+    // also a smaller near-center burst
+    spawnFirework(w*0.5 + (Math.random()-0.5)*200, h*0.18 + Math.random()*80);
+  }
+
+  function updateParticles(dt){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.age += dt;
+      p.x += p.vx * dt * 60;
+      p.y += p.vy * dt * 60;
+      p.vy += 0.03 * dt * 60; // gravity
+      p.vx *= 0.995;
+      p.vy *= 0.995;
+      if(p.age > p.life) particles.splice(i,1);
     }
-    window.addEventListener('resize',onResize);
+  }
+
+  function drawParticles(){
+    particles.forEach(p => {
+      const t = p.age / p.life;
+      const alpha = Math.max(0, 1 - t);
+      fxCtx.globalCompositeOperation = 'lighter';
+      fxCtx.fillStyle = `hsla(${p.hue}, 90%, 60%, ${alpha})`;
+      fxCtx.beginPath();
+      fxCtx.arc(p.x, p.y, p.size * (1 + (1-t)), 0, Math.PI*2);
+      fxCtx.fill();
+      // small glow
+      fxCtx.fillStyle = `hsla(${p.hue}, 90%, 60%, ${alpha*0.25})`;
+      fxCtx.beginPath();
+      fxCtx.arc(p.x, p.y, p.size*3*(1-t), 0, Math.PI*2);
+      fxCtx.fill();
+      fxCtx.globalCompositeOperation = 'source-over';
+    });
+  }
+
+  /* occasional ambient bursts */
+  let ambientTimer = 0;
+
+  /* =================== animation loop for fx canvas =================== */
+  let last = performance.now();
+  function fxLoop(now){
+    const dt = (now - last) / 1000; // seconds
+    last = now;
+    drawRiceLights(dt);
+    updateParticles(dt);
+    drawParticles();
+
+    // ambient fireworks every 3-6 seconds
+    ambientTimer -= dt;
+    if(ambientTimer <= 0){
+      ambientTimer = 3 + Math.random()*4;
+      if(Math.random() > 0.6) {
+        // small ambient burst
+        triggerFireworkBurst();
+      }
+    }
+
+    requestAnimationFrame(fxLoop);
+  }
+  requestAnimationFrame(fxLoop);
+
+  /* =================== Candle row & floating candles =================== */
+  const candleRow = document.getElementById('candleRow');
+  const candleCount = Math.min(12, Math.floor(window.innerWidth / 120) + 2);
+
+  function createCandleImg(className){
+    const img = document.createElement('img');
+    img.src = './candle.png'; // <-- put your uploaded image here
+    img.alt = 'candle';
+    if(className) img.classList.add(className);
+    return img;
+  }
+
+  // fill bottom row
+  for(let i=0;i<candleCount;i++){
+    const img = createCandleImg();
+    // vary flicker timing slightly
+    img.style.animationDelay = (Math.random()*700) + 'ms';
+    candleRow.appendChild(img);
+  }
+
+  // create a few floating candles with randomized left positions
+  const floatingCount = 6;
+  for(let i=0;i<floatingCount;i++){
+    const f = createCandleImg('floating-candle');
+    f.style.left = (10 + Math.random()*80) + 'vw';
+    f.style.bottom = (10 + Math.random()*35) + 'vh';
+    f.style.opacity = 0;
+    f.style.animationDelay = (Math.random()*2000) + 'ms';
+    // slightly randomize float duration
+    const dur = 5 + Math.random()*6;
+    f.style.animationDuration = dur + 's, ' + (0.9 + Math.random()*0.5) + 's';
+    document.getElementById('app').appendChild(f);
+  }
+
+  /* =================== Three.js scene (optional subtle floor / diyas) =================== */
+  (function(){
+    const canvas = document.getElementById('three-canvas');
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+    renderer.setPixelRatio(window.devicePixelRatio);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
+    camera.position.set(0, 1.9, 5.4);
+
+    // soft ambient + warm point
+    const amb = new THREE.AmbientLight(0xffc9b3, 0.45);
+    const pt = new THREE.PointLight(0xffd07a, 0.8, 100);
+    pt.position.set(1.4,2,2);
+    scene.add(amb, pt);
+
+    // subtle reflective floor plane
+    const floorMat = new THREE.MeshStandardMaterial({color:0x06010b, roughness:0.9, metalness:0});
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(40,40), floorMat);
+    floor.rotation.x = -Math.PI/2; floor.position.y = -0.9; scene.add(floor);
+
+    // small ring of 3D diyas near front center for depth (simple meshes)
+    const diyaGroup = new THREE.Group();
+    function makeDiyaSimple(){
+      const g = new THREE.Group();
+      const bowl = new THREE.Mesh(new THREE.TorusGeometry(0.28,0.08,12,32), new THREE.MeshStandardMaterial({color:0x6a2e1b, metalness:0.2, roughness:0.7}));
+      bowl.rotation.x = Math.PI/2; bowl.position.y = 0.02; g.add(bowl);
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.04,0.16,8), new THREE.MeshBasicMaterial({color:0xffdd9b}));
+      flame.position.y = 0.18; g.add(flame);
+      const pl = new THREE.PointLight(0xffb86b, 0.9, 3); pl.position.set(0,0.2,0); g.add(pl);
+      return g;
+    }
+    for(let i=0;i<6;i++){
+      const d = makeDiyaSimple();
+      const a = (i/6) * Math.PI*2;
+      const r = 1.6 + Math.sin(i)*0.08;
+      d.position.set(Math.cos(a)*r, -0.15, Math.sin(a)*r);
+      d.rotation.y = -a;
+      diyaGroup.add(d);
+    }
+    scene.add(diyaGroup);
+
+    // renderer resize
+    function onResize(){
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight, false);
+    }
+    window.addEventListener('resize', onResize);
     onResize();
-  </script></body>
+
+    // animate: subtle float and flicker
+    const clock = new THREE.Clock();
+    (function render(){
+      requestAnimationFrame(render);
+      const t = clock.getElapsedTime();
+      diyaGroup.children.forEach((d,i) => {
+        d.position.y = -0.15 + Math.sin(t * 2.2 + i) * 0.02;
+        d.children[1].scale.y = 1 + Math.sin(t * 6 + i) * 0.18; // flame scale
+      });
+      renderer.render(scene, camera);
+    })();
+  })();
+
+  /* =================== Accessibility: allow click-to-burst on canvas too ============== */
+  document.getElementById('fx-canvas').addEventListener('click', (ev) => {
+    // position-based firework burst
+    const rect = fxCanvas.getBoundingClientRect();
+    const x = (ev.clientX - rect.left);
+    const y = (ev.clientY - rect.top);
+    spawnFirework(x, y);
+  });
+
+  /* =================== Helpful note: ensure candle image exists ============== */
+  // If the candle image wasn't loaded, show a console warning
+  const testImg = new Image();
+  testImg.onload = ()=>{/* ok */}
+  testImg.onerror = ()=>{
+    console.warn("candle.png not found — save your uploaded candle image as 'candle.png' in the same folder as index.html");
+  };
+  testImg.src = './candle.png';
+
+  </script>
+</body>
 </html>
