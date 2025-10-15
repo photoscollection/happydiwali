@@ -1,38 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Happy Diwali 🎆</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Happy Diwali 🎆</title>
+  <style>
+    :root{
+      --bg1: #06020a;
+      --bg2: #1b0320;
+      --accent: #ffb86b;
+      --glass: rgba(255,255,255,0.04);
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;overflow:hidden;background:
+      radial-gradient(circle at 20% 10%, rgba(255,178,107,0.03) 0%, transparent 10%),
+      linear-gradient(180deg,var(--bg2) 0%, var(--bg1) 70%);}
+    #app{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;text-align:center;}
+    #three-canvas, #fx-canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+    #fx-canvas{z-index:1;pointer-events:none;}
+    .overlay{
+      position:relative; z-index:3; width:min(920px,94vw); margin:auto; padding:18px;
+      backdrop-filter: blur(6px); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .controls{display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap}
+    input[type=text]{min-width:260px;padding:12px 14px;border-radius:12px;border:none;background:rgba(255,255,255,0.03);color:#fff;font-size:16px;outline:none;text-align:center}
+    button{padding:10px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,#ffb86b,#ff6b6b);color:#111;font-weight:700;cursor:pointer}
+    #greetingText{margin-top:18px;font-size:26px;line-height:1.3;min-height:64px}
+    #actionButtons{display:none;gap:12px;margin-top:12px;justify-content:center}
+    .candle-row{position:absolute;left:0;right:0;bottom:8px; z-index:2; display:flex; gap:10px;justify-content:center; align-items:end; pointer-events:none; padding:6px;}
+    .candle-row img{height:86px; display:block; filter: drop-shadow(0 8px 30px rgba(0,0,0,0.6)); transform-origin:50% 100%; animation: steadyFlicker 1200ms infinite ease-in-out; will-change: transform, filter, opacity;}
+    .floating-candle{position:absolute; z-index:2; width:72px; pointer-events:none; filter: drop-shadow(0 8px 40px rgba(0,0,0,0.6)); transform-origin:50% 50%; animation: floatUp 6s ease-in-out infinite, softFlicker 1.2s infinite;}
+    @keyframes floatUp{0%{transform: translateY(12px) scale(0.95);opacity:0;}10%{opacity:1;}50%{transform: translateY(-18px) scale(1.03);opacity:1;}90%{opacity:1;}100%{transform: translateY(-36px) scale(0.95);opacity:0;}}
+    @keyframes steadyFlicker{0%{ transform: scaleY(1); filter:brightness(1);}40%{ transform: scaleY(1.02); filter:brightness(1.05);}100%{ transform: scaleY(0.98); filter:brightness(0.95);}}
+    @keyframes softFlicker{0%{ filter:brightness(1.02) drop-shadow(0 8px 26px rgba(255,170,80,0.25));}50%{ filter:brightness(0.86) drop-shadow(0 8px 40px rgba(255,140,60,0.32));}100%{ filter:brightness(1.02) drop-shadow(0 8px 26px rgba(255,170,80,0.25));}}
+    @media (max-width:600px){.candle-row img{height:60px}.floating-candle{width:56px}#greetingText{font-size:20px}}
+  </style>
 </head>
 <body>
-<div id="app">
-  <!-- Three.js Scene -->
-  <canvas id="three-canvas"></canvas>
+  <div id="app">
+    <canvas id="three-canvas"></canvas>
+    <canvas id="fx-canvas"></canvas>
 
-  <!-- FX Canvas -->
-  <canvas id="fx-canvas"></canvas>
-
-  <!-- Overlay UI -->
-  <div class="overlay">
-    <div class="controls" id="inputSection">
-      <input id="name" type="text" placeholder="Enter your friend's name (optional)">
-      <button id="make">Generate Greeting</button>
+    <div class="overlay">
+      <div class="controls">
+        <input id="name" type="text" placeholder="Enter your friend's name (optional)">
+        <button id="make">Generate Greeting</button>
+      </div>
+      <h2 id="greetingText">Wishing you a bright and joyful Diwali 🪔</h2>
+      <div id="actionButtons">
+        <button id="downloadBtn">Download</button>
+        <button id="shareBtn">Share</button>
+      </div>
     </div>
-    <h2 id="greetingText"></h2>
 
-    <div id="actionButtons" style="display:none;">
-      <button id="downloadBtn">Download Greeting</button>
-      <button id="shareBtn">Share Greeting</button>
-    </div>
+    <div class="candle-row" id="candleRow" aria-hidden="true"></div>
   </div>
 
-  <!-- Candle Row -->
-  <div class="candle-row" id="candleRow"></div>
-</div>
+  <!-- Libraries -->
+  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-<script src="script.js"></script>
+  <!-- Main JS -->
+  <script>
+  // ====== Greeting logic ======
+  const greetings = [
+    "Happy Diwali, {{name}}! May this festival fill your life with light and success.",
+    "Wishing you endless joy, {{name}}. Shine bright like a thousand diyas this Diwali!",
+    "{{name}}, may your heart and home sparkle with happiness this Diwali!",
+    "Light up your life with love and laughter, {{name}}. Happy Diwali!",
+    "May this Diwali bring you closer to your dreams, {{name}}!",
+    "{{name}}, let the light of diyas guide you toward prosperity and peace.",
+    "Celebrate Diwali with smiles, sweets, and sparkles, {{name}}!",
+    "{{name}}, may the firecrackers of happiness light up your sky forever!",
+    "Let the glow of diyas remind you that hope always shines, {{name}}!",
+    "{{name}}, wishing you a festival full of colors, sweets, and cheer!",
+    "This Diwali, let love be your spark and kindness your light, {{name}}!",
+    "{{name}}, celebrate the festival of lights with joy and togetherness!",
+    "Happy Diwali, {{name}} — may your life bloom with endless radiance!",
+    "Let the lights of Diwali illuminate your soul, {{name}}!",
+    "{{name}}, may each diya you light bring blessings your way!"
+  ];
+  function hashString(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)+s.charCodeAt(i); return Math.abs(h); }
+  function makeGreeting(name){name=name.trim()||''; const idx=hashString(name+String(Date.now()).slice(-4))%greetings.length; return greetings[idx].replace(/\{\{name\}\}/g,name?name.charAt(0).toUpperCase()+name.slice(1):'');}
+
+  // ====== Canvas Setup ======
+  const fxCanvas=document.getElementById('fx-canvas'); const fxCtx=fxCanvas.getContext('2d');
+  function resizeCanvases(){ const dpr=Math.max(1,window.devicePixelRatio||1); fxCanvas.width=Math.floor(window.innerWidth*dpr); fxCanvas.height=Math.floor(window.innerHeight*dpr); fxCanvas.style.width=window.innerWidth+'px'; fxCanvas.style.height=window.innerHeight+'px'; fxCtx.setTransform(dpr,0,0,dpr,0,0);}
+  window.addEventListener('resize',resizeCanvases); resizeCanvases();
+
+  // ====== Stars ======
+  const stars=[]; for(let i=0;i<150;i++){ stars.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight*0.6,r:Math.random()*1.5+0.2,alpha:Math.random()*0.6+0.4,dAlpha:Math.random()*0.02-0.01});}
+  function drawStars(dt){stars.forEach(s=>{ s.alpha+=s.dAlpha; if(s.alpha>1){s.alpha=1;s.dAlpha*=-1;} if(s.alpha<0.2){s.alpha=0.2;s.dAlpha*=-1;} fxCtx.fillStyle=`rgba(255,255,255,${s.alpha})`; fxCtx.beginPath(); fxCtx.arc(s.x,s.y,s.r,0,Math.PI*2); fxCtx.fill();});}
+
+  // ====== Rice Lights ======
+  const riceLights=[]; for(let i=0;i<28;i++){ riceLights.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight*0.6,r:10+Math.random()*40,alpha:0.03+Math.random()*0.12,vx:(Math.random()-0.5)*0.15,vy:(Math.random()-0.5)*0.04,hue:30+Math.random()*50});}
+  function drawRiceLights(dt){ riceLights.forEach(l=>{ l.x+=l.vx*dt; l.y+=l.vy*dt; if(l.x<-l.r) l.x=window.innerWidth+l.r; if(l.x>window.innerWidth+l.r) l.x=-l.r; if(l.y<-l.r) l.y=window.innerHeight+l.r; if(l.y>window.innerHeight+l.r) l.y=-l.r; const g=fxCtx.createRadialGradient(l.x,l.y,0,l.x,l.y,l.r); g.addColorStop(0,`hsla(${l.hue},90%,60%,${l.alpha})`); g.addColorStop(0.6,`hsla(${l.hue},90%,55%,${l.alpha*0.35})`); g.addColorStop(1,`hsla(${l.hue},90%,45%,0)`); fxCtx.fillStyle=g; fxCtx.beginPath(); fxCtx.arc(l.x,l.y,l.r,0,Math.PI*2); fxCtx.fill();});}
+
+  // ====== Fireworks ======
+  const particles=[];
+  function spawnFirework(x,y){const hue=Math.random()*360; const count=50+Math.floor(Math.random()*80); for(let i=0;i<count;i++){ const angle=Math.random()*Math.PI*2; const speed=2+Math.random()*3; particles.push({x,y,vx:Math.cos(angle)*speed*(0.8+Math.random()*0.7),vy:Math.sin(angle)*speed*(0.8+Math.random()*0.7),life:0.8+Math.random()*1.4,age:0,hue,size:2+Math.random()*3});}}
+
+  function ambientCrackers(){const w=window.innerWidth,h=window.innerHeight; if(Math.random()>0.5) spawnFirework(Math.random()*w*0.8+0.1*w,h*0.15+Math.random()*100);}
+
+  function updateParticles(dt){ for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.age+=dt; p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; p.vy+=0.03*dt*60; p.vx*=0.995; p.vy*=0.995; if(p.age>p.life) particles.splice(i,1);}}
+
+  function drawParticles(){ fxCtx.globalCompositeOperation='lighter'; particles.forEach(p=>{ const t=p.age/p.life; const alpha=Math.max(0,1-t); fxCtx.fillStyle=`hsla(${p.hue},90%,60%,${alpha})`; fxCtx.beginPath(); fxCtx.arc(p.x,p.y,p.size*(1+(1-t)),0,Math.PI*2); fxCtx.fill(); fxCtx.fillStyle=`hsla(${p.hue},90%,60%,${alpha*0.25})`; fxCtx.beginPath(); fxCtx.arc(p.x,p.y,p.size*4*(1-t),0,Math.PI*2); fxCtx.fill();});}
+
+  // ====== FX Loop ======
+  let last=performance.now();
+  function fxLoop(now){ const dt=(now-last)/1000; last=now; fxCtx.clearRect(0,0,window.innerWidth,window.innerHeight); drawStars(dt); drawRiceLights(dt); ambientCrackers(); updateParticles(dt); drawParticles(); requestAnimationFrame(fxLoop);}
+  requestAnimationFrame(fxLoop);
+
+  // ====== Generate Greeting ======
+  document.getElementById('make').addEventListener('click',()=>{
+    const name=document.getElementById('name').value||'';
+    document.getElementById('greetingText').innerText=makeGreeting(name);
+    document.getElementById('actionButtons').style.display='flex';
+
+    for(let i=0;i<6;i++){ spawnFirework(Math.random()*window.innerWidth,Math.random()*window.innerHeight*0.3); }
+  });
+
+  // ====== Download & Share ======
+  document.getElementById('downloadBtn').addEventListener('click',()=>{
+    html2canvas(document.getElementById('app')).then(canvas=>{const link=document.createElement('a'); link.download='diwali-greeting.png'; link.href=canvas.toDataURL(); link.click();});
+  });
+  document.getElementById('shareBtn').addEventListener('click',async ()=>{
+    if(navigator.canShare){
+      html2canvas(document.getElementById('app')).then(canvas=>{
+        canvas.toBlob(blob=>{const file=new File([blob],'diwali-greeting.png',{type:'image/png'}); navigator.share({files:[file],title:'Happy Diwali',text:'Check out this greeting!'});});
+      });
+    }else{alert("Sharing not supported on this device");}
+  });
+
+  // ====== Click-to-burst ======
+  fxCanvas.addEventListener('click',(ev)=>{
+    const rect=fxCanvas.getBoundingClientRect(); const x=ev.clientX-rect.left; const y=ev.clientY-rect.top; spawnFirework(x,y); spawnFirework(x+Math.random()*50,y+Math.random()*50);
+  });
+
+  // ====== Candles ======
+  const candleRow=document.getElementById('candleRow');
+  const candleCount=Math.min(12,Math.floor(window.innerWidth/120)+2);
+  function createCandleImg(className){const img=document.createElement('img'); img.src='./candle.png'; img.alt='candle'; if(className) img.classList.add(className); return img;}
+  for(let i=0;i<candleCount;i++){const img=createCandleImg(); img.style.animationDelay=(Math.random()*700)+'ms'; candleRow.appendChild(img);}
+  for(let i=0;i<6;i++){const f=createCandleImg('floating-candle'); f.style.left=(10+Math.random()*80)+'vw'; f.style.bottom=(10+Math.random()*35)+'vh'; f.style.opacity=0; f.style.animationDelay=(Math.random()*2000)+'ms'; const dur=5+Math.random()*6; f.style.animationDuration=dur+'s,'+(0.9+Math.random()*0.5)+'s'; document.getElementById('app').appendChild(f);}
+  </script>
 </body>
 </html>
