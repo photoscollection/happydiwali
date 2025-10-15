@@ -1,0 +1,58 @@
+:root{
+  --bg1: #06020a; 
+  --bg2: #1b0320;
+  --accent: #ffb86b;
+  --glass: rgba(255,255,255,0.04);
+}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;overflow:hidden;background:
+  radial-gradient(circle at 20% 10%, rgba(255,178,107,0.03) 0%, transparent 10%),
+  linear-gradient(180deg,var(--bg2) 0%, var(--bg1) 70%);}
+#app {position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;text-align:center;}
+#three-canvas{position:absolute;left:0;top:0;width:100%;height:100%;z-index:0;display:block}
+#fx-canvas{position:absolute;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.overlay{
+  position:relative; z-index:3; width:min(920px,94vw); margin:auto; padding:18px;
+  backdrop-filter: blur(6px); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:14px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+.controls{display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap}
+input[type=text]{min-width:260px;padding:12px 14px;border-radius:12px;border:none;background:rgba(255,255,255,0.03);color:#fff;font-size:16px;outline:none;text-align:center}
+button{padding:10px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,#ffb86b,#ff6b6b);color:#111;font-weight:700;cursor:pointer}
+#greetingText{margin-top:18px;font-size:26px;line-height:1.3;min-height:64px}
+.candle-row{
+  position: absolute; left:0; right:0; bottom:8px; z-index:2; display:flex; gap:10px;
+  justify-content:center; align-items:end; pointer-events:none; padding:6px;
+}
+.candle-row img{
+  height:86px; display:block; filter: drop-shadow(0 8px 30px rgba(0,0,0,0.6));
+  transform-origin:50% 100%;
+  animation: steadyFlicker 1200ms infinite ease-in-out;
+  will-change: transform, filter, opacity;
+}
+.floating-candle{
+  position:absolute; z-index:2; width:72px; pointer-events:none; filter: drop-shadow(0 8px 40px rgba(0,0,0,0.6));
+  transform-origin:50% 50%;
+  animation: floatUp 6s ease-in-out infinite, softFlicker 1.2s infinite;
+}
+@keyframes floatUp{
+  0%{ transform: translateY(12px) scale(0.95); opacity:0; }
+  10%{ opacity:1; }
+  50%{ transform: translateY(-18px) scale(1.03); opacity:1; }
+  90%{ opacity:1; }
+  100%{ transform: translateY(-36px) scale(0.95); opacity:0; }
+}
+@keyframes steadyFlicker{
+  0%{ transform: scaleY(1); filter:brightness(1); }
+  40%{ transform: scaleY(1.02); filter:brightness(1.05); }
+  100%{ transform: scaleY(0.98); filter:brightness(0.95); }
+}
+@keyframes softFlicker{
+  0%{ filter:brightness(1.02) drop-shadow(0 8px 26px rgba(255,170,80,0.25)); }
+  50%{ filter:brightness(0.86) drop-shadow(0 8px 40px rgba(255,140,60,0.32)); }
+  100%{ filter:brightness(1.02) drop-shadow(0 8px 26px rgba(255,170,80,0.25)); }
+}
+@media (max-width:600px){
+  .candle-row img{height:60px}
+  .floating-candle{width:56px}
+  #greetingText{font-size:20px}
+}
