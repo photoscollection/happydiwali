@@ -1,41 +1,38 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Happy Diwali 🎆</title>
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css">
-
-  <!-- Three.js -->
-  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-  <!-- html2canvas for screenshot -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Happy Diwali 🎆</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app">
-    <!-- Three.js scene -->
-    <canvas id="three-canvas"></canvas>
-    <!-- 2D effects -->
-    <canvas id="fx-canvas"></canvas>
+<div id="app">
+  <!-- Three.js Scene -->
+  <canvas id="three-canvas"></canvas>
 
-    <!-- Foreground UI -->
-    <div class="overlay">
-      <div class="controls">
-        <input id="name" type="text" placeholder="Enter your friend's name (e.g. Ananya)">
-        <button id="make">Generate Greeting</button>
-        <button id="downloadCard">Download Card</button>
-        <button id="shareCard">Share Card</button>
-      </div>
-      <h2 id="greetingText">Wishing you a bright and joyful Diwali 🪔</h2>
+  <!-- FX Canvas -->
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Overlay UI -->
+  <div class="overlay">
+    <div class="controls" id="inputSection">
+      <input id="name" type="text" placeholder="Enter your friend's name (optional)">
+      <button id="make">Generate Greeting</button>
     </div>
+    <h2 id="greetingText"></h2>
 
-    <!-- Candle row -->
-    <div class="candle-row" id="candleRow" aria-hidden="true"></div>
+    <div id="actionButtons" style="display:none;">
+      <button id="downloadBtn">Download Greeting</button>
+      <button id="shareBtn">Share Greeting</button>
+    </div>
   </div>
 
-  <!-- JS -->
-  <script src="script.js"></script>
+  <!-- Candle Row -->
+  <div class="candle-row" id="candleRow"></div>
+</div>
+
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
